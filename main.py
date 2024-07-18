@@ -39,8 +39,7 @@ def add_message(role: str, message: str) -> None:
     """
     Add a message to the chat
     """
-    st.session_state["messages"].append(ChatMessage(role=role,
-                                                    content=message))
+    st.session_state["messages"].append(ChatMessage(role=role, content=message))
 
 def load_prompt_from_yaml(file_path: str) -> ChatPromptTemplate:
     """
@@ -94,10 +93,11 @@ if user_input:
         # Stream the response token, in an empty container
         container = st.empty()
         accumulated_response = ""
+        st.markdown(f"### {selected_prompt} mode")
         for token in response:
             accumulated_response += token
             container.markdown(accumulated_response)
 
     # Save the messages
     add_message("user", user_input)
-    add_message("assistant", response)
+    add_message("assistant", f"{selected_prompt} mode\n\n{accumulated_response}")
