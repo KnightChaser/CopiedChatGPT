@@ -6,6 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain import hub
 from dotenv import load_dotenv
 from typing import Any
+import yaml
 
 # Retrieve the environment variables
 load_dotenv()
@@ -19,8 +20,8 @@ with st.sidebar:
         st.session_state["messages"] = []
     selected_prompt = st.selectbox(
         "Select the prompt type",
-        ("Basic mode", "Blog post", "Abbreviation"),
-        index = 0
+        ("Basic mode", "Blog post", "Tweet"),
+        index=0
     )
 
 # Initialize the session state(messages) and display the messages
@@ -41,6 +42,17 @@ def add_message(role: str, message: str) -> None:
     st.session_state["messages"].append(ChatMessage(role=role,
                                                     content=message))
 
+def load_prompt_from_yaml(file_path: str) -> ChatPromptTemplate:
+    """
+    Load a ChatPromptTemplate from a YAML file
+    """
+    with open(file_path, 'r') as file:
+        prompt_data = yaml.safe_load(file)
+    template = ChatPromptTemplate.from_messages(
+        [(message['role'], message['content']) for message in prompt_data['messages']]
+    )
+    return template
+
 def create_langchain(prompt_type) -> Any:
     """
     Generate a LCEL chain for the assistant
@@ -54,13 +66,8 @@ def create_langchain(prompt_type) -> Any:
         )
     elif prompt_type == "Blog post":
         prompt = hub.pull("hardkothari/blog-generator")
-    elif prompt_type == "Abbreviation":
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", "You are a writing expert. Read the following article and summarize it without losing the main idea."),
-                ("user", "#Article:\n{question}"),
-            ]
-        )
+    elif prompt_type == "Tweet":
+        prompt = load_prompt_from_yaml('tweet_prompt.yml')
     else:
         raise ValueError("Invalid prompt type")
     
@@ -79,7 +86,9 @@ if user_input:
     chain = create_langchain(selected_prompt)
     if selected_prompt == "Blog post":
         response = chain.stream({"text": user_input, "target_audience": "general user"})
-    else:
+    elif selected_prompt == "Tweet":
+        response = chain.stream({"text": user_input})
+    elif selected_prompt == "Basic mode":
         response = chain.stream({"question": user_input})
     with st.chat_message("assistant"):
         # Stream the response token, in an empty container
